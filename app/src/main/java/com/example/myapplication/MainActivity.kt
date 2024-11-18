@@ -1,123 +1,144 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3Api::class
+)
+
 package com.example.myapplication
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
+// Define BottomNavItem
+sealed class BottomNavItem(val route: String, val label: String, val icon: @Composable () -> Unit) {
+    object ForYou : BottomNavItem("forYou", "For You", { Icon(Icons.Filled.Home, contentDescription = "For You") })
+    object Comic : BottomNavItem("comic", "Comics", { Icon(Icons.Filled.Favorite, contentDescription = "Comics") })
+    object Profile : BottomNavItem("profile", "Profile", { Icon(Icons.Filled.Person, contentDescription = "Profile") })
+}
+
+
 class MainActivity : ComponentActivity() {
-
-    companion object{
-        val items = listOf(
-            Item(
-                title = "Romance 101",
-                image = R.drawable.new101),
-            Item(
-                title = "Starting Over With\n" +
-                        "the Dead You",
-                image = R.drawable.newdead),
-            Item(
-                title = "I Became a Level 999 Demon Queen",
-                image = R.drawable.newdemon),
-            Item(
-                title = "Escaping the Illusion",
-                image = R.drawable.newescaping),
-            Item(
-                title = "School Bus Graveyard",
-                image = R.drawable.newgraveyard),
-            Item(
-                title = "My S-Class Hunters",
-                image = R.drawable.newsclass),
-            Item(
-                title = "Who’s That Long-Haired Senior?",
-                image = R.drawable.newsenior),
-            Item(
-                title = "The Students\n" +
-                        "of Illip Arts High",
-                image = R.drawable.newstudents),
-            Item(
-                title = "My Blood-Curdling Campus Life",
-                image = R.drawable.newvampire),
-            Item(
-                title = "The Demon King's Warrior Daughter",
-                image = R.drawable.newwarrior)
-        )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val navController = rememberNavController()
-                    NavHost(
-                        navController = navController,
-                        startDestination = "ForYouPage",
-                        modifier = Modifier.padding(innerPadding) // Use innerPadding here
-                    ) {
-                        composable("ForYouPage") {
-                            ForYouPage()
-                        }
-                        composable("ComicPage") {
-                            ComicPage()
-                        }
-                        composable("ProfilePage") {
-                            ProfilePage()
-                        }
-                    }
-                }
+                MainContent()  // Call the main composable function
             }
         }
     }
 }
 
 @Composable
-fun ForYouPage(navController: NavHostController) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Button(onClick = { navController.navigate("ComicPage") }) {
-            Text(text = "For You Page")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
+fun MainContent() {
+    val navController = rememberNavController()
+    val currentScreenTitle = remember { mutableStateOf("For You Page") }
 
-        Button(onClick = { navController.navigate("ProfilePage") }) {
-            Text(text = "Comic Page")
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(text = currentScreenTitle.value) })
+        },
+        bottomBar = {
+            BottomNavigationBar(navController = navController)
         }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = { navController.navigate("ProfilePage") }) {
-            Text(text = "Profile Page")
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.ForYouPage.route,
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            composable(Screen.ForYouPage.route) {
+                currentScreenTitle.value = "For You Page"
+                Screen.ForYouPage.Content(navController)
+            }
+            composable(Screen.ComicPage.route) {
+                currentScreenTitle.value = " "
+                Screen.ComicPage.Content(navController)
+            }
+            composable(Screen.ProfilePage.route) {
+                currentScreenTitle.value = "Profile Page"
+                Screen.ProfilePage.Content(navController)
+            }
+            composable(
+                route = Screen.DetailPage.route,
+                arguments = listOf(navArgument("comicId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val comicId = backStackEntry.arguments?.getInt("comicId")
+                Screen.DetailPage.Content(navController, comicId)
+            }
         }
     }
 }
 
+private fun Screen.Content() {
+    TODO("Not yet implemented")
+}
 
+
+@Composable
+fun BottomNavigationBar(navController: NavHostController) {
+    val currentBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry.value?.destination?.route
+
+    NavigationBar {
+        NavigationBarItem(
+            icon = { Icon(Icons.Filled.Home, contentDescription = "For You") },
+            label = { Text("For You") },
+            selected = currentRoute == Screen.ForYouPage.route,
+            onClick = {
+                if (currentRoute != Screen.ForYouPage.route) {
+                    navController.navigate(Screen.ForYouPage.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Filled.Favorite, contentDescription = "Comics") },
+            label = { Text("Comics") },
+            selected = currentRoute == Screen.ComicPage.route,
+            onClick = {
+                if (currentRoute != Screen.ComicPage.route) {
+                    navController.navigate(Screen.ComicPage.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
+            label = { Text("Profile") },
+            selected = currentRoute == Screen.ProfilePage.route,
+            onClick = {
+                if (currentRoute != Screen.ProfilePage.route) {
+                    navController.navigate(Screen.ProfilePage.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
     MyApplicationTheme {
-        ForYouPage(navController = rememberNavController())
+        MainContent()
     }
 }

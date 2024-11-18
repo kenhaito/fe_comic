@@ -1,69 +1,117 @@
-package com.example.myapplication
-
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.BottomNavItem
+import com.example.myapplication.BottomNavigationBar
+import com.example.myapplication.RecommendedComic
+import com.example.myapplication.recommendedComics
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
-
 @Composable
-fun ComicPage(){
-    LazyVerticalGrid (
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 16.dp),
-        columns = GridCells.Fixed(2)
-    ) {
-        itemsIndexed(MainActivity.items) { index, item ->
-            GridItem(item = item)
-            Spacer(modifier = Modifier.height(16.dp))
+fun ComicPage(onComicClick: (RecommendedComic) -> Unit) {
+    var searchText by remember { mutableStateOf("") }
+    val filteredComics = recommendedComics.filter {
+        it.title.contains(searchText, ignoreCase = true)
+    }
+
+    // Create a navController here
+    val navController = rememberNavController()
+
+
+    Scaffold(
+        topBar = { TopBarWithSearch("Comic Page", searchText) { searchText = it } },
+         // Pass the required parameters here
+    ) { paddingValues ->
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 150.dp),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            itemsIndexed(filteredComics) { _, comic ->
+                ComicGridItem(comic = comic, onClick = {
+                    navController.navigate("detail/${comic.title}")
+                })
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GridItem(item: Item) {
+fun TopBarWithSearch(screenName: String, searchText: String, onSearchChange: (String) -> Unit) {
+    TopAppBar(
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = screenName,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                TextField(
+                    value = searchText,
+                    onValueChange = onSearchChange,
+                    placeholder = { Text("Search") },
+                    modifier = Modifier.width(200.dp),
+                    singleLine = true,
+                    colors = TextFieldDefaults.textFieldColors(
+                        containerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
+        },
+        modifier = Modifier.height(56.dp),
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Black)
+    )
+}
+
+@Composable
+fun ComicGridItem(comic: RecommendedComic, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .size(200.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .clip(RoundedCornerShape(8.dp))
+            .fillMaxWidth()
+            .clickable { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            modifier = Modifier
-                .height(300.dp)
-                .width(200.dp),
-            painter = painterResource(id = item.image),
-            contentDescription = item.title,
+            painter = painterResource(id = comic.image),
+            contentDescription = comic.title,
             contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .aspectRatio(3f / 4f)
+                .clip(RoundedCornerShape(8.dp))
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Text(
-            text = item.title,
-            fontWeight = FontWeight.SemiBold
+            text = comic.title,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }
@@ -72,6 +120,6 @@ fun GridItem(item: Item) {
 @Composable
 fun ComicPagePreview() {
     MyApplicationTheme {
-        ComicPage()
+        ComicPage(onComicClick = {}) // Provide a placeholder lambda
     }
 }
